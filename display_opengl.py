@@ -6,16 +6,41 @@ import pyrr
 import math 
 import time
 from PIL import Image
+import serial
 
+arduino = serial.Serial('COM4', 115200, timeout=.1)
+
+rpm =400
+with open('test.npy', 'rb') as f:
+    a = np.load(f)
+
+           
+def refresh(f, verticies, colors, R, PHI):
+            for r in range(1,R):
+                k=r*PHI
+                for i in range(0,PHI):
+                
+                    z=i+k
+                    verticies[z]=(verticies[z][0],verticies[z][1],0,colors[f][z][0],colors[f][z][1],colors[f][z][2])
+            return verticies
+
+
+
+print(a)  
+print(len(a))  
 filename = "beeg yosh.jpg"
 img = Image.open(filename)
 #img.show()
+
+
+
+
 
 def main():
     if not glfw.init():
         return
  
-    window = glfw.create_window(1080, 1080, "Pyopengl Rotating Cube", None, None)
+    window = glfw.create_window(500, 500, "Volumetric dislplay", None, None)
  
     if not window:
         glfw.terminate()
@@ -25,30 +50,44 @@ def main():
 
  
     # convert to 32bit float
-    PHI=round(100)
-    
-    R=100
+    PHI=round(50)
+    R=50
     scale=R
-    colors=[0,0,0]*(PHI*R)
+    h=round(85/(rpm/60))
+    colors=[[0,0,0]*(PHI*R)]*h
+    colors = np.empty((120, PHI*R,3), dtype = np.float32)
     img = Image.open(filename)
     size =img.size
     verticies=[(0,0,0,0,0,0)]*(PHI*R)
-    for r in range(1,R):
-        for i in range(0,PHI):
-            z=i+r*PHI
+    verticies = np.array(verticies, dtype=np.float32)
+    rho = 0.0
 
-            verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
-            
-            colors[z] = img.getpixel((verticies[z][0]*200+350,-verticies[z][1]*200+200))
+    for F in range(0,h):
+        
+        rho = F*2*math.pi/h
+        for i in range(0,round(PHI/2)):
+            for r in range(1,R):
+                z=i+r*PHI
+                verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
+                x=round((len(a)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(2*scale) +round(len((a))/2))
+                y=round((len(a)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(2*scale) +round((len(a))/2))
+                Z=round((len(a)-1)*(i)/(PHI/2))
+                colors[F][z] = a[x][y][Z]
+
+        for i in range(round(PHI/2),PHI):
+            for r in range(1,R):
+                z=i+r*PHI
+                verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
+                x=round((len(a)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(2*scale) +round(len((a))/2))
+                y=round((len(a)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(2*scale) +round((len(a))/2))
+                Z=round((len(a)-1)*(i-(PHI/2))/(PHI/2))
+                colors[F][z] = a[y][Z][x]
                 
-            #print(colors)
-
- 
     cube = np.array(verticies, dtype=np.float32)
+ 
 
 
-
-    
+    print(colors)
     surfaces=[(0,0,0,0,0,0)]*(PHI*R)   
 
     for r in range(PHI,len(surfaces)):
@@ -59,8 +98,9 @@ def main():
  
     indices = np.array(surfaces, dtype = np.uint32)
  
- 
- 
+    
+
+    
     VERTEX_SHADER = """
  
         #version 330
@@ -76,7 +116,7 @@ def main():
          gl_Position = transform * vec4(position, 1.0f);
          newColor = color;
  
-          }
+         }
  
  
     """
@@ -96,10 +136,11 @@ def main():
     """
  
     # Compile The Program and shaders
- 
-    shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(VERTEX_SHADER, GL_VERTEX_SHADER),
-                                              OpenGL.GL.shaders.compileShader(FRAGMENT_SHADER, GL_FRAGMENT_SHADER))
- 
+    print(bool(glShaderSource))
+
+    shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(VERTEX_SHADER, GL_VERTEX_SHADER),OpenGL.GL.shaders.compileShader(FRAGMENT_SHADER, GL_FRAGMENT_SHADER))
+
+                                              
     # Create Buffer object in gpu
     VBO = glGenBuffers(1)
     # Bind the buffer
@@ -129,46 +170,45 @@ def main():
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glEnable(GL_DEPTH_TEST)
     t=1
-    e=1
-    size=img.size
+
     rot_x = pyrr.Matrix44.from_z_rotation(0 * glfw.get_time() )
     rot_y = pyrr.Matrix44.from_y_rotation(0)
  
     transformLoc = glGetUniformLocation(shader, "transform")
     glUniformMatrix4fv(transformLoc, 1, GL_FALSE, rot_x * rot_y)
+    f=0
     while not glfw.window_should_close(window):
         
         glfw.poll_events()
+        data = arduino.readline()[:-2] #the last bit gets rid of the new-line chars
+	    
+        if data:
+            
+            for f in range(0,h):
+                print(f)
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
- 
 
-        
-        #Draw Cube
-        img = Image.open(filename)
-
-        for r in range(1,R):
-            for i in range(0,PHI):
-                z=i+r*PHI
-                #colors = img.getpixel((verticies[z][0]*200+350,-verticies[z][1]*200+200))
                 
-                #print (colors)
-                verticies[z]=(verticies[z][0],verticies[z][1],0,colors[z][0]/255,colors[z][1]/255,colors[z][2]/255)
-        
-        cube = np.array(verticies, dtype=np.float32)
-        
-        
-        
-        
-        glBufferData(GL_ARRAY_BUFFER, cube.nbytes, cube, GL_STATIC_DRAW)
-        glDrawElements(GL_TRIANGLES,cube.nbytes, GL_UNSIGNED_INT,  None)
-        glfw.swap_buffers(window)
-        
-        
+                #Draw Cube
+                #img = Image.open(filename)
+                
+                verticies = refresh(f, verticies, colors, R, PHI)
+                
+                
+                
 
-        fps = 1/(time.time()-t)
-        print(fps)
-        t= time.time()
+                
+                
+                glBufferData(GL_ARRAY_BUFFER, verticies.nbytes, verticies, GL_DYNAMIC_DRAW)
+                glDrawElements(GL_TRIANGLES,verticies.nbytes, GL_UNSIGNED_INT,  None)
+                glfw.swap_buffers(window)
+                
+                # x =(time.time()-t)
+                # if x!=0:
+                #     fps = 1/x
+                #     print(fps)
+                # t= time.time()
     glfw.terminate()
  
  
