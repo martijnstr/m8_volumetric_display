@@ -5,14 +5,14 @@ import numpy as np
 import pyrr
 import math 
 import time
-from PIL import Image
 import serial
+import numba
+#arduino = serial.Serial('COM4', 115200, timeout=.1)
 
-arduino = serial.Serial('COM4', 115200, timeout=.1)
+rpm =402
 
-rpm =400
-with open('test.npy', 'rb') as f:
-    a = np.load(f)
+with open('test.npy', 'rb', True) as f:
+    b = np.load(f)    
 
            
 def refresh(f, verticies, colors, R, PHI):
@@ -22,16 +22,44 @@ def refresh(f, verticies, colors, R, PHI):
                 
                     z=i+k
                     verticies[z]=(verticies[z][0],verticies[z][1],0,colors[f][z][0],colors[f][z][1],colors[f][z][2])
-            return verticies
+@numba.jit(nopython=True)
+def calculateColors(colors2, PHI,R, h, b):
+        for F in range(0,h):
+            
+            rho = F*2*math.pi/h
+            for i in range(0,round(PHI/2)):
+                for r in range(1,R):
+                    z=i+r*PHI
+                    x=round((len(b)-0.1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*R) +round(len((b))/2))
+                    y=round((len(b)-0.1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*R) +round((len(b))/2))
+                    Z=round((len(b)-0.1)*(i)/(PHI/2))
+                    colors2[F][z] = b[x][y][Z]
+                    
+            # for i in range(round(PHI/2),PHI):
+            #     for r in range(1,R):
+            #         z=i+r*PHI
+
+            #         x=round((len(b)-0.1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*R) +round(len((b))/2))
+            #         y=round((len(b)-0.1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*R) +round((len(b))/2))
+            #         Z=round((len(b)-0.1)*(i-(PHI/2))/(PHI/2))
+            #         colors2[F][z] = b2[x][y][Z]
+
+@numba.jit(nopython=True)
+def calculateColors2(colors2, PHI,R, h, b):
+    for F in range(0,h):
+            rho = F*2*math.pi/h
+            for i in range(round(PHI/2),PHI):
+                for r in range(1,R):
+                    z=i+r*PHI
+
+                    x=round((len(b)-0.1)*r*math.cos((i*math.pi/PHI)+rho)/(2*R) +round(len((b))/2))
+                    y=round((len(b)-0.1)*r*math.sin((i*math.pi/PHI)+rho)/(2*R) +round((len(b))/2))
+                    Z=round((len(b)-0.1)*(i-(PHI/2))/(PHI/2))
+                    colors2[F][z] = b[x][y][Z]
 
 
 
-print(a)  
-print(len(a))  
-filename = "beeg yosh.jpg"
-img = Image.open(filename)
-#img.show()
-
+b2=[]
 
 
 
@@ -48,19 +76,20 @@ def main():
  
     glfw.make_context_current(window)
 
- 
     # convert to 32bit float
-    PHI=round(50)
-    R=50
+    PHI=round(70)
+    R=70
     scale=R
     h=round(85/(rpm/60))
     colors=[[0,0,0]*(PHI*R)]*h
-    colors = np.empty((120, PHI*R,3), dtype = np.float32)
-    img = Image.open(filename)
-    size =img.size
+    colors = np.empty((h, PHI*R,3), dtype = np.float32)
+    colors2 = np.empty((h, PHI*R,3), dtype = np.float32)
     verticies=[(0,0,0,0,0,0)]*(PHI*R)
     verticies = np.array(verticies, dtype=np.float32)
     rho = 0.0
+
+    with open('test.npy', 'rb', True) as f:
+        b = np.load(f)    
 
     for F in range(0,h):
         
@@ -69,20 +98,19 @@ def main():
             for r in range(1,R):
                 z=i+r*PHI
                 verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
-                x=round((len(a)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(2*scale) +round(len((a))/2))
-                y=round((len(a)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(2*scale) +round((len(a))/2))
-                Z=round((len(a)-1)*(i)/(PHI/2))
-                colors[F][z] = a[x][y][Z]
-
+                x=round((len(b)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*scale) +round(len((b))/2))
+                y=round((len(b)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*scale) +round((len(b))/2))
+                Z=round((len(b)-1)*(i)/(PHI/2))
+                colors[F][z] = b[x][y][Z]
         for i in range(round(PHI/2),PHI):
             for r in range(1,R):
                 z=i+r*PHI
                 verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
-                x=round((len(a)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(2*scale) +round(len((a))/2))
-                y=round((len(a)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(2*scale) +round((len(a))/2))
-                Z=round((len(a)-1)*(i-(PHI/2))/(PHI/2))
-                colors[F][z] = a[y][Z][x]
-                
+                x=round((len(b)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*scale) +round(len((b))/2))
+                y=round((len(b)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*scale) +round((len(b))/2))
+                Z=round((len(b)-1)*(i-(PHI/2))/(PHI/2))
+                colors[F][z] = b[x][y][Z]
+        
     cube = np.array(verticies, dtype=np.float32)
  
 
@@ -177,38 +205,58 @@ def main():
     transformLoc = glGetUniformLocation(shader, "transform")
     glUniformMatrix4fv(transformLoc, 1, GL_FALSE, rot_x * rot_y)
     f=0
+    d=0
+
     while not glfw.window_should_close(window):
         
         glfw.poll_events()
-        data = arduino.readline()[:-2] #the last bit gets rid of the new-line chars
-	    
-        if data:
+        # data = arduino.readline()[:-2]
+        if d==1:
+            d=0
+            with open('test.npy', 'rb', True) as f:
+                 b = np.load(f)
             
-            for f in range(0,h):
-                print(f)
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            
+            
+            try:
+                
+                calculateColors(colors, R, PHI, h, b)
+                calculateColors2(colors, R, PHI, h, b)
+                colors = colors2
+            except:
+                print("error") 
+            
+          
+            
+        d+=1
+        # if data:
+            
+        for f in range(0,h):
         
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    
 
-                
-                #Draw Cube
-                #img = Image.open(filename)
-                
-                verticies = refresh(f, verticies, colors, R, PHI)
-                
-                
-                
+            
+            #Draw Cube
+            #img = Image.open(filename)
+            # try:
+            #     _thread.start_new_thread(refresh, (f, verticies, colors, R, PHI))
+            
+            # except:
+            #     print("error") 
+            refresh(f, verticies, colors, R, PHI)
 
-                
-                
-                glBufferData(GL_ARRAY_BUFFER, verticies.nbytes, verticies, GL_DYNAMIC_DRAW)
-                glDrawElements(GL_TRIANGLES,verticies.nbytes, GL_UNSIGNED_INT,  None)
-                glfw.swap_buffers(window)
-                
-                # x =(time.time()-t)
-                # if x!=0:
-                #     fps = 1/x
-                #     print(fps)
-                # t= time.time()
+            
+            
+            glBufferData(GL_ARRAY_BUFFER, verticies.nbytes, verticies, GL_DYNAMIC_DRAW)
+            glDrawElements(GL_TRIANGLES,verticies.nbytes, GL_UNSIGNED_INT,  None)
+            glfw.swap_buffers(window)
+            
+            x =(time.time()-t)
+            if x!=0:
+                fps = 1/x
+                print(fps)
+            t= time.time()
     glfw.terminate()
  
  
