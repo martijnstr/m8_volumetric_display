@@ -10,11 +10,9 @@ import numba
 #arduino = serial.Serial('COM4', 115200, timeout=.1)
 
 rpm =402
+alpha =0
 
-with open('test.npy', 'rb', True) as f:
-    b = np.load(f)    
-
-           
+          
 def refresh(f, verticies, colors, R, PHI):
             for r in range(1,R):
                 k=r*PHI
@@ -22,44 +20,43 @@ def refresh(f, verticies, colors, R, PHI):
                 
                     z=i+k
                     verticies[z]=(verticies[z][0],verticies[z][1],0,colors[f][z][0],colors[f][z][1],colors[f][z][2])
-@numba.jit(nopython=True)
+
+@numba.jit
 def calculateColors(colors2, PHI,R, h, b):
         for F in range(0,h):
-            
-            rho = F*2*math.pi/h
-            for i in range(0,round(PHI/2)):
+            rho = F*1*math.pi/h
+            for i in range(0,round(PHI)):
                 for r in range(1,R):
                     z=i+r*PHI
-                    x=round((len(b)-0.1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*R) +round(len((b))/2))
-                    y=round((len(b)-0.1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*R) +round((len(b))/2))
-                    Z=round((len(b)-0.1)*(i)/(PHI/2))
+                    x=round((len(b)-0.1)*r*math.cos((i*1*math.pi/(PHI))+rho)/(2*R) +len(b)/2)
+                    y=round((len(b)-0.1)*r*math.sin((i*1*math.pi/(PHI))+rho)/(2*R) +len(b)/2)
+                    Z=round((len(b)-0.1)*(i)/(PHI))
+                    colors2[F][z] = b[x][y][Z]
+            for i in range(0,round(PHI)):
+                for r in range(1,R):
+                    z=i+r*PHI
+                    x=round((len(b)-0.1)*r*math.cos((i*1*math.pi/(PHI))+rho+math.pi)/(2*R) +len(b)/2)
+                    y=round((len(b)-0.1)*r*math.sin((i*1*math.pi/(PHI))+rho+math.pi)/(2*R) +len(b)/2)
+                    Z=round((len(b)-0.1)*(i)/(PHI))
                     colors2[F][z] = b[x][y][Z]
                     
-            # for i in range(round(PHI/2),PHI):
-            #     for r in range(1,R):
-            #         z=i+r*PHI
 
-            #         x=round((len(b)-0.1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*R) +round(len((b))/2))
-            #         y=round((len(b)-0.1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*R) +round((len(b))/2))
-            #         Z=round((len(b)-0.1)*(i-(PHI/2))/(PHI/2))
-            #         colors2[F][z] = b2[x][y][Z]
-
-@numba.jit(nopython=True)
+@numba.jit
 def calculateColors2(colors2, PHI,R, h, b):
     for F in range(0,h):
-            rho = F*2*math.pi/h
+            rho = F*1*math.pi/h 
             for i in range(round(PHI/2),PHI):
                 for r in range(1,R):
                     z=i+r*PHI
 
-                    x=round((len(b)-0.1)*r*math.cos((i*math.pi/PHI)+rho)/(2*R) +round(len((b))/2))
-                    y=round((len(b)-0.1)*r*math.sin((i*math.pi/PHI)+rho)/(2*R) +round((len(b))/2))
+                    x=round((len(b)-0.1)*r*math.cos((i*2*math.pi/(PHI/2))+rho)/(2*R) +round(len((b))/2))
+                    y=round((len(b)-0.1)*r*math.sin((i*2*math.pi/(PHI/2))+rho)/(2*R) +round((len(b))/2))
                     Z=round((len(b)-0.1)*(i-(PHI/2))/(PHI/2))
                     colors2[F][z] = b[x][y][Z]
 
 
 
-b2=[]
+
 
 
 
@@ -77,8 +74,8 @@ def main():
     glfw.make_context_current(window)
 
     # convert to 32bit float
-    PHI=round(70)
-    R=70
+    PHI=round(80)
+    R=80
     scale=R
     h=round(85/(rpm/60))
     colors=[[0,0,0]*(PHI*R)]*h
@@ -94,28 +91,22 @@ def main():
     for F in range(0,h):
         
         rho = F*2*math.pi/h
-        for i in range(0,round(PHI/2)):
+        for i in range(0,round(PHI)):
             for r in range(1,R):
                 z=i+r*PHI
-                verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
-                x=round((len(b)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*scale) +round(len((b))/2))
-                y=round((len(b)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*scale) +round((len(b))/2))
-                Z=round((len(b)-1)*(i)/(PHI/2))
+                verticies[z]=((r*math.cos(i*2*math.pi/PHI)/scale),r*math.sin(i*2*math.pi/PHI)/scale*(1+r*alpha*math.sin(i*2*math.pi/PHI)/scale),0,0,0,0)
+                x=round((len(b)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(2*scale) +round(len((b))/2))
+                y=round((len(b)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(2*scale) +round((len(b))/2))
+                Z=round((len(b)-1)*(i)/(PHI))
                 colors[F][z] = b[x][y][Z]
-        for i in range(round(PHI/2),PHI):
-            for r in range(1,R):
-                z=i+r*PHI
-                verticies[z]=(r*math.cos(i*2*math.pi/PHI)/scale,r*math.sin(i*2*math.pi/PHI)/scale,0,0,0,0)
-                x=round((len(b)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(4*scale) +round(len((b))/2))
-                y=round((len(b)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(4*scale) +round((len(b))/2))
-                Z=round((len(b)-1)*(i-(PHI/2))/(PHI/2))
-                colors[F][z] = b[x][y][Z]
+
+        
         
     cube = np.array(verticies, dtype=np.float32)
  
 
 
-    print(colors)
+    
     surfaces=[(0,0,0,0,0,0)]*(PHI*R)   
 
     for r in range(PHI,len(surfaces)):
@@ -164,7 +155,7 @@ def main():
     """
  
     # Compile The Program and shaders
-    print(bool(glShaderSource))
+    
 
     shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(VERTEX_SHADER, GL_VERTEX_SHADER),OpenGL.GL.shaders.compileShader(FRAGMENT_SHADER, GL_FRAGMENT_SHADER))
 
@@ -204,46 +195,32 @@ def main():
  
     transformLoc = glGetUniformLocation(shader, "transform")
     glUniformMatrix4fv(transformLoc, 1, GL_FALSE, rot_x * rot_y)
-    f=0
-    d=0
 
     while not glfw.window_should_close(window):
         
         glfw.poll_events()
         # data = arduino.readline()[:-2]
-        if d==1:
-            d=0
-            with open('test.npy', 'rb', True) as f:
-                 b = np.load(f)
-            
-            
-            
-            try:
-                
-                calculateColors(colors, R, PHI, h, b)
-                calculateColors2(colors, R, PHI, h, b)
-                colors = colors2
-            except:
-                print("error") 
-            
-          
-            
-        d+=1
-        # if data:
-            
-        for f in range(0,h):
-        
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    
 
+
+        with open('test.npy', 'rb', True) as f:
+                b = np.load(f)
+        
+        
+        try:
             
-            #Draw Cube
-            #img = Image.open(filename)
-            # try:
-            #     _thread.start_new_thread(refresh, (f, verticies, colors, R, PHI))
-            
-            # except:
-            #     print("error") 
+            calculateColors(colors, R, PHI, h, b)
+            #calculateColors2(colors, R, PHI, h, b)
+            colors = colors2
+        except:
+            print("error") 
+
+
+   
+        for f in range(0,h):
+            # if data:
+            #     break
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
             refresh(f, verticies, colors, R, PHI)
 
             

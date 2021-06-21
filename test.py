@@ -2,11 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tempfile import TemporaryFile
 import time
+import os
 outfile = TemporaryFile()
 
 # prepare some coordinates
 x, y, z = np.indices((20, 20, 20))
-#x, y, z = np.indices((100, 100, 100))
+# x, y, z = np.indices((30, 30, 30))
 # draw cuboids in the top left and bottom right corners, and a link between
 # them
 cube1 = (x < 7) & (y < 7) & (z < 7)
@@ -25,12 +26,13 @@ colors[cube1] = (0.1,0.8,0)
 colors[cube2] = (0.1,0.1,1)
 #print(colors)
 # and plot everything
-#ax = plt.figure().add_subplot(projection='3d')
-#ax.voxels(voxels, facecolors=colors, edgecolor='k')
+# ax = plt.figure().add_subplot(projection='3d')
+# ax.voxels(voxels, facecolors=colors, edgecolor='k')
 
 
 with open('test.npy', 'wb') as f:
+    f.truncate(0)
     np.save(f, colors)
 print("done")
     
-#plt.show()
+# plt.show()
