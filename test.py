@@ -7,8 +7,9 @@ from os import path
 
 
 # prepare some coordinates
-x, y, z = np.indices((100, 100, 100))
+x, y, z = np.indices((20, 20, 20))
 # x, y, z = np.indices((30, 30, 30))
+# x, y, z = np.indices((100, 100, 100))
 # draw cuboids in the top left and bottom right corners, and a link between
 # them
 cube1 = (x < 7) & (y < 7) & (z < 7)
@@ -26,22 +27,24 @@ colors[link] = (0,0.5,0)
 colors[cube1] = (0.1,0.8,0)
 colors[cube2] = (0.1,0.1,1)
 #print(colors)
-# and plot everything
-# ax = plt.figure().add_subplot(projection='3d')
-# ax.voxels(voxels, facecolors=colors, edgecolor='k')
+# # and plot everything
+ax = plt.figure().add_subplot(projection='3d')
+ax.voxels(voxels, facecolors=colors, edgecolor='k')
 
-while True:
+# while True:
 
 
-    if round(time.time())%2==0:
-        if path.exists("test.npy"):
-            os.remove("test.npy")
-        with open('test.npy', 'wb') as f:
-            f.truncate(0)
-            np.save(f, colors)
-        f.close()
-        
+#     if round(time.time())%2==0:
+#         try:
+#             if path.exists("test.npy"):
+#                 os.remove("test.npy")
+#             with open('test.npy', 'wb') as f:
+#                 f.truncate(0)
+#                 np.save(f, colors)
+#             f.close()
 
-        print("done")
+#             print("done")
+#         except:
+#             print("failed opening file")
     
-# plt.show()
+plt.show()

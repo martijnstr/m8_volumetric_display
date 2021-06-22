@@ -9,50 +9,42 @@ import serial
 import numba
 #arduino = serial.Serial('COM4', 115200, timeout=.1)
 
-rpm =402
+rpm =400
 alpha =0
+zoom = 1.5
+rotation = 0
 
           
 def refresh(f, verticies, colors, R, PHI):
             for r in range(1,R):
-                k=r*PHI
+                k=r
                 for i in range(0,PHI):
-                
-                    z=i+k
+                    z=i+k*PHI
                     verticies[z]=(verticies[z][0],verticies[z][1],0,colors[f][z][0],colors[f][z][1],colors[f][z][2])
 
 @numba.jit
-def calculateColors(colors2, PHI,R, h, b):
+def calculateColors(colors2, PHI,R, h, b, zoom):
         for F in range(0,h):
-            rho = F*1*math.pi/h
-            for i in range(0,round(PHI)):
+            for i in range(0,round(PHI/2)):
                 for r in range(1,R):
-                    z=i+r*PHI
-                    x=round((len(b)-0.1)*r*math.cos((i*1*math.pi/(PHI))+rho)/(2*R) +len(b)/2)
-                    y=round((len(b)-0.1)*r*math.sin((i*1*math.pi/(PHI))+rho)/(2*R) +len(b)/2)
-                    Z=round((len(b)-0.1)*(i)/(PHI))
-                    colors2[F][z] = b[x][y][Z]
-            for i in range(0,round(PHI)):
-                for r in range(1,R):
-                    z=i+r*PHI
-                    x=round((len(b)-0.1)*r*math.cos((i*1*math.pi/(PHI))+rho+math.pi)/(2*R) +len(b)/2)
-                    y=round((len(b)-0.1)*r*math.sin((i*1*math.pi/(PHI))+rho+math.pi)/(2*R) +len(b)/2)
-                    Z=round((len(b)-0.1)*(i)/(PHI))
-                    colors2[F][z] = b[x][y][Z]
-                    
+                    z=i +r*PHI-round(F*PHI/(2*h))
+                    x=round(((len(b)-1)*r*math.cos((i*2*math.pi/(PHI))-F*1*math.pi/h)/(2*R)*zoom +len(b)/2))
+                    y=round(((len(b)-1)*r*math.sin((i*2*math.pi/(PHI))-F*1*math.pi/h)/(2*R)*zoom +len(b)/2))
+                    Z=round(((len(b)-0.5)*(i)/(PHI/2))*zoom)
+                    if (x>=len(b) or y>=len(b) or Z>=len(b)or x<0 or y<0 or z<0):
+                        colors2[F][z] = (0,0,0)
+                    else:
+                        colors2[F][z] = b[x][y][Z]
+                    z=i +r*PHI-round(F*PHI/(2*h))-round(PHI/2)
+                    x=round(((len(b)-1)*r*math.cos((i*2*math.pi/(PHI))-F*1*math.pi/h+1*math.pi)/(2*R)*zoom +len(b)/2))
+                    y=round(((len(b)-1)*r*math.sin((i*2*math.pi/(PHI))-F*1*math.pi/h+1*math.pi)/(2*R)*zoom +len(b)/2))
+                    Z=round(((len(b)-0.5)*(i)/(PHI/2))*zoom)
+                    if (x>=len(b) or y>=len(b) or Z>=len(b) or x<0 or y<0 or z<0):
+                        colors2[F][z] = (0,0,0)
+                    else:
+                        colors2[F][z] = b[x][y][Z]
 
-@numba.jit
-def calculateColors2(colors2, PHI,R, h, b):
-    for F in range(0,h):
-            rho = F*1*math.pi/h 
-            for i in range(round(PHI/2),PHI):
-                for r in range(1,R):
-                    z=i+r*PHI
 
-                    x=round((len(b)-0.1)*r*math.cos((i*2*math.pi/(PHI/2))+rho)/(2*R) +round(len((b))/2))
-                    y=round((len(b)-0.1)*r*math.sin((i*2*math.pi/(PHI/2))+rho)/(2*R) +round((len(b))/2))
-                    Z=round((len(b)-0.1)*(i-(PHI/2))/(PHI/2))
-                    colors2[F][z] = b[x][y][Z]
 
 
 
@@ -74,8 +66,8 @@ def main():
     glfw.make_context_current(window)
 
     # convert to 32bit float
-    PHI=round(80)
-    R=80
+    PHI=round(70)
+    R=PHI
     scale=R
     h=round(85/(rpm/60))
     colors=[[0,0,0]*(PHI*R)]*h
@@ -90,21 +82,15 @@ def main():
         b = np.load(f)    
         f.close()
 
-    for F in range(0,h):
-        
-        rho = F*2*math.pi/h
-        for i in range(0,round(PHI)):
-            for r in range(1,R):
-                z=i+r*PHI
-                verticies[z]=((r*math.cos(i*2*math.pi/PHI)/scale),r*math.sin(i*2*math.pi/PHI)/scale*(1+r*alpha*math.sin(i*2*math.pi/PHI)/scale),0,0,0,0)
-                x=round((len(b)-1)*r*math.cos((i*2*math.pi/PHI)+rho)/(2*scale) +round(len((b))/2))
-                y=round((len(b)-1)*r*math.sin((i*2*math.pi/PHI)+rho)/(2*scale) +round((len(b))/2))
-                Z=round((len(b)-1)*(i)/(PHI))
-                colors[F][z] = b[x][y][Z]
+    for i in range(0,round(PHI)):
+        for r in range(1,R):
+            z=i+r*PHI
+            verticies[z]=((r*math.cos(i*2*math.pi/PHI)/scale),r*math.sin(i*2*math.pi/PHI)/scale*(1+r*alpha*math.sin(i*2*math.pi/PHI)/scale),0,0,0,0)
+
 
         
         
-    cube = np.array(verticies, dtype=np.float32)
+    verticies = np.array(verticies, dtype=np.float32)
  
 
 
@@ -166,7 +152,7 @@ def main():
     VBO = glGenBuffers(1)
     # Bind the buffer
     glBindBuffer(GL_ARRAY_BUFFER, VBO)
-    glBufferData(GL_ARRAY_BUFFER, cube.nbytes, cube, GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, verticies.nbytes, verticies, GL_STATIC_DRAW)
  
     #Create EBO
     EBO = glGenBuffers(1)
@@ -192,34 +178,39 @@ def main():
     glEnable(GL_DEPTH_TEST)
     t=1
 
-    rot_x = pyrr.Matrix44.from_z_rotation(0 )
-    rot_y = pyrr.Matrix44.from_y_rotation(0)
- 
-    transformLoc = glGetUniformLocation(shader, "transform")
-    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, rot_x * rot_y)
 
     while not glfw.window_should_close(window):
+        
+        rot_x = pyrr.Matrix44.from_z_rotation(0)
+        rot_y = pyrr.Matrix44.from_y_rotation(0)
+    
+        transformLoc = glGetUniformLocation(shader, "transform")
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, rot_x * rot_y)
         
         glfw.poll_events()
         # data = arduino.readline()[:-2]
 
         if round(time.time())%2==1:
-            with open('test.npy', 'rb', True) as f:
-                    b = np.load(f)
-                    f.close()
+            try:
+                with open('test.npy', 'rb', True) as f:
+                        b = np.load(f)
+                        f.close()
+            except:
+                print("failed fetching new data")
         
         
         try:
+    
+            calculateColors(colors, R, PHI, h, b, zoom)
             
-            calculateColors(colors, R, PHI, h, b)
-            #calculateColors2(colors, R, PHI, h, b)
             colors = colors2
         except:
             print("error") 
 
+                    
 
-   
         for f in range(0,h):
+
             # if data:
             #     break
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -231,7 +222,7 @@ def main():
             glBufferData(GL_ARRAY_BUFFER, verticies.nbytes, verticies, GL_DYNAMIC_DRAW)
             glDrawElements(GL_TRIANGLES,verticies.nbytes, GL_UNSIGNED_INT,  None)
             glfw.swap_buffers(window)
-            
+
             x =(time.time()-t)
             if x!=0:
                 fps = 1/x
