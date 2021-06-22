@@ -84,9 +84,11 @@ def main():
     verticies=[(0,0,0,0,0,0)]*(PHI*R)
     verticies = np.array(verticies, dtype=np.float32)
     rho = 0.0
+    
 
     with open('test.npy', 'rb', True) as f:
         b = np.load(f)    
+        f.close()
 
     for F in range(0,h):
         
@@ -190,7 +192,7 @@ def main():
     glEnable(GL_DEPTH_TEST)
     t=1
 
-    rot_x = pyrr.Matrix44.from_z_rotation(0 * glfw.get_time() )
+    rot_x = pyrr.Matrix44.from_z_rotation(0 )
     rot_y = pyrr.Matrix44.from_y_rotation(0)
  
     transformLoc = glGetUniformLocation(shader, "transform")
@@ -201,9 +203,10 @@ def main():
         glfw.poll_events()
         # data = arduino.readline()[:-2]
 
-
-        with open('test.npy', 'rb', True) as f:
-                b = np.load(f)
+        if round(time.time())%2==1:
+            with open('test.npy', 'rb', True) as f:
+                    b = np.load(f)
+                    f.close()
         
         
         try:

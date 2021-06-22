@@ -3,10 +3,11 @@ import numpy as np
 from tempfile import TemporaryFile
 import time
 import os
-outfile = TemporaryFile()
+from os import path
+
 
 # prepare some coordinates
-x, y, z = np.indices((20, 20, 20))
+x, y, z = np.indices((100, 100, 100))
 # x, y, z = np.indices((30, 30, 30))
 # draw cuboids in the top left and bottom right corners, and a link between
 # them
@@ -29,10 +30,18 @@ colors[cube2] = (0.1,0.1,1)
 # ax = plt.figure().add_subplot(projection='3d')
 # ax.voxels(voxels, facecolors=colors, edgecolor='k')
 
+while True:
 
-with open('test.npy', 'wb') as f:
-    f.truncate(0)
-    np.save(f, colors)
-print("done")
+
+    if round(time.time())%2==0:
+        if path.exists("test.npy"):
+            os.remove("test.npy")
+        with open('test.npy', 'wb') as f:
+            f.truncate(0)
+            np.save(f, colors)
+        f.close()
+        
+
+        print("done")
     
 # plt.show()
